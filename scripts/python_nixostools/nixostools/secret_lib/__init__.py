@@ -26,10 +26,13 @@ OPENSSH_PRIVATE_KEY_SIGNATURE: bytes = b'\x00\x00\x00\x40'
 PUBLIC_KEY_LENGTH:  int = nacl.bindings.crypto_box_PUBLICKEYBYTES
 PRIVATE_KEY_LENGTH: int = nacl.bindings.crypto_box_PUBLICKEYBYTES
 
-SECRETS_KEY: str = "secrets"
-SERVERS_KEY: str = "servers"
-PATH_KEY:    str = "path"
-CONTENT_KEY: str = "content"
+SECRETS_KEY    = "secrets"
+SERVERS_KEY    = "servers"
+PATH_KEY       = "path"
+CONTENT_KEY    = "content"
+TUNNELS_KEY    = "tunnels"
+PER_HOST_KEY   = "per-host"
+PUBLIC_KEY_KEY = "public_key"
 
 
 def chunk(b64bytes: bytes) -> str:
@@ -105,19 +108,19 @@ def extract_public_key(tunnels_json: Mapping,
   def raise_wrong_format():
     raise Exception(f"Error parsing the public key for server {server}, wrong format.")
 
-  server_tunnel_data = tunnels_json['tunnels']['per-host'].get(server)
+  server_tunnel_data = tunnels_json[TUNNELS_KEY][PER_HOST_KEY].get(server)
   if not server_tunnel_data:
     raise Exception(f'Server {server} not found in "{public_keys_path}".')
-  if not server_tunnel_data['public_key'].strip():
+  if not server_tunnel_data[PUBLIC_KEY_KEY].strip():
     # The server is defined but has an empty public key
     # This happens for servers being provisioned
     return None
   # Find the public key, strip off the header,
   # and discard anything following the key
-  pubkey_splitted = server_tunnel_data['public_key'].split(' ', 2)
-  if len(pubkey_splitted) < 2:
+  pubkey_split = server_tunnel_data[PUBLIC_KEY_KEY].split(maxsplit=2)
+  if len(pubkey_split) < 2:
     raise_wrong_format()
-  pubkey_chars = pubkey_splitted[1]
+  pubkey_chars = pubkey_split[1]
   if not len(pubkey_chars) == OPENSSH_PUBLIC_KEY_STRING_LENGTH:
     raise_wrong_format
   return extract_curve_public_key(pubkey_chars)
